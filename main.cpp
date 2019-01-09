@@ -68,7 +68,6 @@ double getHCO3(double const& h, double const& c2, double const& c3, std::vector<
 	return getCO2(h, c2, c3, Ka, pCO2air)[0]*Ka[4]/h;
 }
 double getCO3(double const& h, double const& c2, double const& c3, std::vector<double> const& Ka, double const& pCO2air) {
-	//return (c2+c3)/(1+h/Ka[5]*(1+h/Ka[4]));
 	return getHCO3(h, c2, c3, Ka, pCO2air)*Ka[5]/h;
 }
 double getPhCOOH(double const& h, double const& c4, std::vector<double> const& Ka) {
@@ -146,7 +145,7 @@ double pH(double const& c0, double const& c1, double const& c2, double const& c3
 	double b = pow(10, 0);	//pH maximal
 	double eps = pow(10, -16);	//erreur accordee
 
-	double x(0);
+	double x(0.0);
 
 	if (polynomeB(a, c0, c1, c2, c3, c4, c5, Kas, pCO2air)*polynomeB(b, c0, c1, c2, c3, c4, c5, Kas, pCO2air)>0){
 			return -1;
@@ -194,7 +193,7 @@ double compares(double const& vaj, double const& pH, std::vector<std::vector<dou
 double getExhaustedVol(double const& h, double const& c2, double const& c3, std::vector<double> const& Ka,
 					double const& pAir, double const& xCO2, double const& volume, double const& T){
 	//Retourne le volume de gaz CO2 degage
-	return 8.134*T/pAir * getCO2(h, c2, c3, Ka, pAir*xCO2)[1]/volume;	//V=RT/P*n
+	return 8.134*T/pAir * getCO2(h, c2, c3, Ka, pAir*xCO2)[1]/volume;	//	V=RT/P*n
 }
 
 
@@ -216,8 +215,7 @@ std::vector<double> getConc(double const& h, double const& c1, double const& c2,
 	conc.push_back(c1/(1+h/Ka[2]*(h/Ka[1]+1)+Ka[3]/h));	//AH 2-
 	conc.push_back(c1/(1+h/Ka[3]*(h/Ka[2]*(h/Ka[1]+1)+1)));	//A 3-
 
-	//conc.push_back((c2+c3)/(1+Ka[4]/h*(1+Ka[5]/h)));	//CO2
-	conc.push_back(getCO2(h,c2,c3,Ka,pCO2air)[0]);
+	conc.push_back(getCO2(h,c2,c3,Ka,pCO2air)[0]);	//CO2 dissous
 	conc.push_back((c2+c3)/(1+h/Ka[4] +Ka[5]/h));	//HCO3 -
 	conc.push_back((c2+c3)/(1+h/Ka[5]*(1+h/Ka[4])));	//CO3 2-
 
@@ -247,6 +245,7 @@ void titrage(double const& c_titrant, double const& v_burette, double const& c1,
 	* \return concentrations
 	*
 	*/
+
 	std::ofstream myFile("testpH.csv");
 	myFile<<"Volume ajoute"<<";"<<"pH"
 		<<";"<<"[AH_3]"<<";"<<"[AH_2 -]"<<";"<<"[AH 2-]"<<";"<<"[A 3-]"
@@ -320,7 +319,7 @@ int main()
 	//Donnees de la simulation
 	double eps (0.3);	//Ecart de pH maximal admissible
 	int m_min (0);	//Masse minimale (mg)
-	int m_max (2000);	//Masse maximale (mg)
+	int m_max (1000);	//Masse maximale (mg)
 	int m_gap (10);	//Pas entre deux masses (mg)
 
 
@@ -333,25 +332,47 @@ int main()
 	int i (0);
 	double gap (0);
 
+	double _temp (0.0);
+
+
+	/*** Entree utilisateur ***/
+	std::cout<<"Volume becher (mL): ";
+	{std::cin>>_temp;
+	vi = _temp/1000;}
+	std::cout<<"Volume burette (mL): ";
+	{std::cin>>_temp;
+	v_burette = _temp/1000;}
+	std::cout<<"Concentration de l'espece titrante (mol/L): ";
+	std::cin>> c_titrant;
+	std::cout<<"Ecart de pH maximal: ";
+	std::cin>> eps;
+	std::cout<<"Masse minimale (mg): ";
+	std::cin>>m_min;
+	std::cout<<"Masse maximale (mg): ";
+	std::cin>>m_max;
+	std::cout<<"Pas entre deux masses successives (mg): ";
+	std::cin>>m_gap;
+
+
 
 
 	for (int m_PhCOONa = m_min; m_PhCOONa<= m_max; m_PhCOONa += m_gap) {	//Masse Benzoate de sodium (en mg)
 		double c4 = (double)m_PhCOONa/(1000*vi*M_PhCOONa);
-		//std::cout<<m_PhCOONa<<std::endl;
-		std::cout<<((double)m_PhCOONa)/((double)m_max)*100<<"\t%"<<std::endl;
+		std::cout<<((double)m_PhCOONa)/((double)m_max)*100<<"\t%"<<std::endl;	//Affichage progression en %
+
 		for (int m_NaHCO3 = m_min; m_NaHCO3<= m_max; m_NaHCO3 += m_gap) {	//Masse Bicarbonate de sodium (en mg)
 			double c3 = (double)m_NaHCO3/(1000*vi*M_NaHCO3);
-			std::cout<<m_NaHCO3<<std::endl;
+
 			for (int m_Na2CO3 = m_min; m_Na2CO3<= m_max; m_Na2CO3 += m_gap) {	//Masse Carbonate de sodium (en mg)
 				double c2 = (double)m_Na2CO3/(1000*vi*M_Na2CO3);
-				//std::cout<<m_Na2CO3<<std::endl;
-				for (int m_AH3 = m_min; m_AH3<= m_max; m_AH3 += m_gap) {   //Masse Acide citrique (en mg)
-					double c1 = (double)m_AH3/(1000*vi*M_AH3); //Concentration Acide citrique
-					//std::cout<<m_AH3<<std::endl;
 
-					stillCorrect = true;
-					sum = 0;
-					i = 1;
+				for (int m_AH3 = m_min; m_AH3<= m_max; m_AH3 += m_gap) {   //Masse Acide citrique (en mg)
+					double c1 = (double)m_AH3/(1000*vi*M_AH3);	//Concentration Acide citrique
+
+
+					stillCorrect = true;	//Si la simulation d'un titrage est coherente avec l'experience jusque-la
+					sum = 0;	//Somme des ecarts a l'experience en vue de calculer une variance
+					i = 1;	//Nombre de points du titrage pour calculer la variance
 
 					for (int vg(5); ((double)vg)/100000<=v_burette; vg+=50){	//vg : centieme de mL
 						i++;
@@ -374,15 +395,15 @@ int main()
 
 					sum /= i;
 
-					if (stillCorrect && sum < prevSum){
-						std::cout<<"s = "<< sqrt(sum)<<std::endl;
+					if (stillCorrect && sum < prevSum){	//Si tous les points de la simulation sont acceptables et que la variance est plus faible que la precedente
+						std::cout<<"s = "<< sqrt(sum)<<std::endl;	//Affichage ecart-type avec l'experience
 						std::cout<<"m_AH3 = "<< m_AH3 << "mg."<<std::endl;
 						std::cout<<"m_Na2CO3 = "<< m_Na2CO3 << "mg."<<std::endl;
 						std::cout<<"m_NaHCO3 = "<< m_NaHCO3 << "mg."<<std::endl;
 						std::cout<<"m_NaPhCOO = "<< m_PhCOONa << "mg.\n"<<std::endl;
 
 						titrage(c_titrant, v_burette, c1, c2, c3, c4, c5, vi, Kas, pressure, xCO2air, temperature);
-						prevSum = sum;
+						prevSum = sum;	//Nouvelle variance a 'battre'
 					}
 				}
 			}
