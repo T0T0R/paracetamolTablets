@@ -22,7 +22,7 @@ de (m_min) mg a (m_max) mg par pas de (m_gap) mg.
 
 
 /***
-Les seules especes dont on connait deja la bonne concentration sont:
+Les seules especes dont on connait deja la concentration correcte sont:
     - Titrant : c0
     - Paracetamol (ParacH): c5
 autres especes :
@@ -49,10 +49,14 @@ double getA(double const& h, double const& c1, std::vector<double> const& Ka) {
 	return c1/(1+h/Ka[3]*(h/Ka[2]*(h/Ka[1]+1)+1));
 }
 std::vector<double> getCO2(double const& h, double const& c2, double const& c3, std::vector<double> const& Ka, double const& pCO2air) {
+	/* Returns a couple containing:
+	table[0] : the concentration of CO2 diluted in solution
+	table[1] : the 'concentration' of CO2 that cannot be disolved and therefore is being released
+	*/
 	double conc= (c2+c3)/(1+Ka[4]/h*(1+Ka[5]/h));
 	std::vector<double> result (2);
 
-	double k_Hcp (3.4e-2);	//Constante de Henry pour le CO2
+	double k_Hcp (3.4e-2);	//Constante de Henry pour le CO2 a 25 °C
 	double diff = conc-k_Hcp/101.3e3*pCO2air;
 	if (diff>0){
 		result[0] = k_Hcp/101.3e3*pCO2air;
@@ -115,8 +119,9 @@ std::vector<std::vector<double>> readDatas(std::string filename){
 
 
 
-double polynomeB(double const& h, double const& c0, double const& c1, double const& c2, double const& c3, double const& c4, double const& c5, std::vector<double> const& Ka, double const& pCO2air) {
-	/** \brief Polynome dont la racine est la concentration en ions H+ de la solution pour le titrage par ne base forte
+double polynomeB(double const& h, double const& c0, double const& c1, double const& c2, double const& c3, double const& c4, double const& c5,
+				 std::vector<double> const& Ka, double const& pCO2air) {
+	/** \brief Polynome dont la racine est la concentration en ions H+ de la solution pour le titrage par une base forte
 	*
 	* \param h {Indeterminee du polynome}
 	* \param c {Concentrations du milieu}
@@ -171,7 +176,7 @@ double compares(double const& vaj, double const& pH, std::vector<std::vector<dou
      * \param pH {pH a vaj}
      * \param table {Tableau de pH = f(V ajoute)}
      * \param eps {Seuil de pH}
-     * \return true si les tableaux sont anbalogues, false sinon.
+     * \return true si les tableaux sont analogues, false sinon.
      *
      */
 
@@ -179,9 +184,9 @@ double compares(double const& vaj, double const& pH, std::vector<std::vector<dou
 
 	for (std::vector<double> couple: table){	//Pour chaque couple VolumeAjoute/pH...
 		if (abs(couple[0]-vaj)<epsVolume){	//... on cherche si c'est celui qui correspond au bon volume vaj ...
-			return couple[1]-pH;	//... et dans ce cas, on retourne la difference
-		}else{	//Si le couple n'est pas celui avec le bon volume ajoute
-			continue;
+			return couple[1]-pH;	//... et dans ce cas, on retourne la difference.
+		}else{	//Si le couple n'est pas celui avec le bon volume ajoute...
+			continue;	//... on passe au couple suivant.
 		}
 	}
 
@@ -198,7 +203,8 @@ double getExhaustedVol(double const& h, double const& c2, double const& c3, std:
 
 
 
-std::vector<double> getConc(double const& h, double const& c1, double const& c2, double const& c3, double const& c4, double const& c5, std::vector<double> const& Ka, double const& pCO2air) {
+std::vector<double> getConc(double const& h, double const& c1, double const& c2, double const& c3, double const& c4, double const& c5, 
+							std::vector<double> const& Ka, double const& pCO2air) {
 	/** \brief Retourne les concentrations des diverses especes presentes en solution a l'equilibre
 	*
 	* \param h {Concentration en H+}
@@ -267,7 +273,7 @@ void titrage(double const& c_titrant, double const& v_burette, double const& c1,
 			<<";"<<conc[4]<<";"<<conc[5]<<";"<<conc[6]
 			<<";"<<conc[7]<<";"<<conc[8]
 			<<";"<<conc[9]<<";"<<conc[10]
-			<<";"<<getExhaustedVol(pow(10, -pHnow),c2,c3,Kas,pAir,xCO2,vtot,T)<<std::endl;	//Concentrations dans le becher
+			<<";"<<getExhaustedVol(pow(10, -pHnow),c2,c3,Kas,pAir,xCO2,vtot,T)<<std::endl;	//Concentrations des especes dans le becher
 	}
 	myFile.close();
 }
@@ -292,7 +298,7 @@ int main()
 
 	std::vector<double> Kas {Ke, Ka1, Ka2, Ka3, Ka4, Ka5, Ka6, Ka7};
 
-	//Masses molaires
+	//Masses molaires (g/mol)
 	double M_AH3 (192.12);	//Acide citrique
 	double M_NaHCO3 (84.01);	//Bicarbonate de Sodium
 	double M_Na2CO3 (105.99);	//Carbonate de Sodium
@@ -302,18 +308,18 @@ int main()
 
 	//Donnees du titrage
 	std::vector<std::vector<double>> expTitrage = readDatas("dataFile.csv");
-	double vi (0.02);	//Volume de solution initiale dans le becher
-	double v_burette (0.04);	//Volume de la burette
+	double vi (0.02);	//Volume de solution initiale dans le becher (L)
+	double v_burette (0.04);	//Volume de la burette (L)
 
-	double c_titrant (0.2);	//Concentration de titrant dans la burette
-	double m_ParacH (500);	//Masse de Paracetamol en mg
+	double c_titrant (0.2);	//Concentration de titrant dans la burette (mol/L)
+	double m_ParacH (500/1000);	//Masse de Paracetamol (g)
 
-	double c5 = m_ParacH/(1000*vi*M_ParacH);	//Concentration de Paracetamol dans le becher
+	double c5 = m_ParacH/(vi*M_ParacH);	//Concentration de Paracetamol dans le becher (mol/L)
 
-	double pressure (101.3e3);	//Pression de l'air
+	double pressure (101.3e3);	//Pression de l'air (Pa)
 	double xCO2air (0.04);	//Fraction molaire de CO2 dans l'air
-	double pCO2air = pressure*xCO2air;	//Pression partielle de CO2 dans le milieu exterieur
-	double temperature (293);
+	double pCO2air = pressure*xCO2air;	//Pression partielle de CO2 dans le milieu exterieur (Pa)
+	double temperature (293);	//Temperature du milieu (K)
 
 
 	//Donnees de la simulation
@@ -327,7 +333,7 @@ int main()
 	double pHnow (-1);
 	bool stillCorrect (false);
 
-	double prevSum (1E8);
+	double prevSum (1E8);	//Variance initiale fixee volontairement tres grande
 	double sum (0);
 	int i (0);
 	double gap (0);
@@ -376,7 +382,7 @@ int main()
 
 					for (int vg(5); ((double)vg)/100000<=v_burette; vg+=50){	//vg : centieme de mL
 						i++;
-						double vaj = ((double)vg)/100000;
+						double vaj = ((double)vg)/100000;	//Volume ajoute calcule a partir de vg (L)
 						double vtot = vaj+vi;
 						double c0 = c_titrant*vaj/(vtot);	//Concentration de titrant dans le becher
 
