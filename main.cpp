@@ -236,7 +236,7 @@ std::vector<double> getConc(double const& h, double const& c1, double const& c2,
 
 
 void titrage(double const& c_titrant, double const& v_burette, double const& c1, double const& c2, double const& c3, double const& c4, double const& c5,
-			 double const& vi, std::vector<double> const& Kas, double const& pAir, double const& xCO2, double const& T) {
+			 double const& vi, std::vector<double> const& Kas, double const& pAir, double const& xCO2, double const& T, int const& nbCurve) {
 	/** \brief Realise un titrage d'une solution
 	*
 	* \param c_titrant {Concentration de l'espece titrante}
@@ -251,7 +251,10 @@ void titrage(double const& c_titrant, double const& v_burette, double const& c1,
 	*
 	*/
 
-	std::ofstream myFile("testpH.csv");
+
+
+	std::ofstream myFile("testpH_"+std::to_string(nbCurve)+".csv");
+
 	myFile<<"Volume ajoute"<<";"<<"pH"
 		<<";"<<"[AH_3]"<<";"<<"[AH_2 -]"<<";"<<"[AH 2-]"<<";"<<"[A 3-]"
 		<<";"<<"[CO2]"<<";"<<"[HCO3 -]"<<";"<<"[CO3 2-]"
@@ -311,7 +314,8 @@ int main()
 	double v_burette (0.04);	//Volume de la burette (L)
 
 	double c_titrant (0.2);	//Concentration de titrant dans la burette (mol/L)
-	double m_ParacH (500/1000);	//Masse de Paracetamol (g)
+	double m_ParacH (500.0/1000);	//Masse de Paracetamol (g)
+
 
 	double c5 = m_ParacH/(vi*M_ParacH);	//Concentration de Paracetamol dans le becher (mol/L)
 
@@ -322,10 +326,10 @@ int main()
 
 
 	//Donnees de la simulation
-	double eps (0.3);	//Ecart de pH maximal admissible
-	int m_min (0);	//Masse minimale (mg)
-	int m_max (1000);	//Masse maximale (mg)
-	int m_gap (10);	//Pas entre deux masses (mg)
+	double eps (1.0);	//Ecart de pH maximal admissible
+	double m_min (100.0);	//Masse minimale (mg)
+	double m_max (5000.0);	//Masse maximale (mg)
+	double m_gap (50.0);	//Pas entre deux masses (mg)
 
 
 	//Initialisations de variables
@@ -335,18 +339,17 @@ int main()
 	double prevSum (1E8);	//Variance initiale fixee volontairement tres grande
 	double sum (0);
 	int i (0);
-	double gap (0);
+	double gap (0);	//Ecart mesure entre simulation/experience
+	int nbCurve (0);	//Numerote les courbes de sortie
 
 	double _temp (0.0);
 
 
 	/*** Entree utilisateur ***/
 	std::cout<<"Volume becher (mL): ";
-	{std::cin>>_temp;
-	vi = _temp/1000;}
+	{std::cin>>_temp;	vi = _temp/1000;}
 	std::cout<<"Volume burette (mL): ";
-	{std::cin>>_temp;
-	v_burette = _temp/1000;}
+	{std::cin>>_temp;	v_burette = _temp/1000;}
 	std::cout<<"Concentration de l'espece titrante (mol/L): ";
 	std::cin>> c_titrant;
 	std::cout<<"Ecart de pH maximal: ";
@@ -361,18 +364,18 @@ int main()
 
 
 
-	for (int m_PhCOONa = m_min; m_PhCOONa<= m_max; m_PhCOONa += m_gap) {	//Masse Benzoate de sodium (en mg)
-		double c4 = (double)m_PhCOONa/(1000*vi*M_PhCOONa);
+	for (double m_PhCOONa = m_min; m_PhCOONa<= m_max; m_PhCOONa += m_gap) {	//Masse Benzoate de sodium (en mg)
+		double c4 = m_PhCOONa/(1000*vi*M_PhCOONa);
 		std::cout<<((double)m_PhCOONa)/((double)m_max)*100<<"\t%"<<std::endl;	//Affichage progression en %
 
-		for (int m_NaHCO3 = m_min; m_NaHCO3<= m_max; m_NaHCO3 += m_gap) {	//Masse Bicarbonate de sodium (en mg)
-			double c3 = (double)m_NaHCO3/(1000*vi*M_NaHCO3);
+		for (double m_NaHCO3 = m_min; m_NaHCO3<= m_max; m_NaHCO3 += m_gap) {	//Masse Bicarbonate de sodium (en mg)
+			double c3 = m_NaHCO3/(1000*vi*M_NaHCO3);
 
-			for (int m_Na2CO3 = m_min; m_Na2CO3<= m_max; m_Na2CO3 += m_gap) {	//Masse Carbonate de sodium (en mg)
-				double c2 = (double)m_Na2CO3/(1000*vi*M_Na2CO3);
+			for (double m_Na2CO3 = m_min; m_Na2CO3<= m_max; m_Na2CO3 += m_gap) {	//Masse Carbonate de sodium (en mg)
+				double c2 = m_Na2CO3/(1000*vi*M_Na2CO3);
 
-				for (int m_AH3 = m_min; m_AH3<= m_max; m_AH3 += m_gap) {   //Masse Acide citrique (en mg)
-					double c1 = (double)m_AH3/(1000*vi*M_AH3);	//Concentration Acide citrique
+				for (double m_AH3 = m_min; m_AH3<= m_max; m_AH3 += m_gap) {   //Masse Acide citrique (en mg)
+					double c1 = m_AH3/(1000*vi*M_AH3);	//Concentration Acide citrique
 
 
 					stillCorrect = true;	//Si la simulation d'un titrage est coherente avec l'experience jusque-la
@@ -398,6 +401,7 @@ int main()
 						}
 					}
 
+
 					sum /= i;
 
 					if (stillCorrect && sum < prevSum){	//Si tous les points de la simulation sont acceptables et que la variance est plus faible que la precedente
@@ -407,8 +411,9 @@ int main()
 						std::cout<<"m_NaHCO3 = "<< m_NaHCO3 << "mg."<<std::endl;
 						std::cout<<"m_NaPhCOO = "<< m_PhCOONa << "mg.\n"<<std::endl;
 
-						titrage(c_titrant, v_burette, c1, c2, c3, c4, c5, vi, Kas, pressure, xCO2air, temperature);
+						titrage(c_titrant, v_burette, c1, c2, c3, c4, c5, vi, Kas, pressure, xCO2air, temperature, nbCurve);
 						prevSum = sum;	//Nouvelle variance a 'battre'
+						nbCurve ++;
 					}
 				}
 			}
