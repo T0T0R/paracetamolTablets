@@ -326,10 +326,10 @@ int main()
 
 
 	//Donnees de la simulation
-	double eps (1.0);	//Ecart de pH maximal admissible
-	double m_min (100.0);	//Masse minimale (mg)
-	double m_max (5000.0);	//Masse maximale (mg)
-	double m_gap (50.0);	//Pas entre deux masses (mg)
+	double eps (0.3);	//Ecart de pH maximal admissible
+	double m_min (0.0);	//Masse minimale (mg)
+	double m_max (1000.0);	//Masse maximale (mg)
+	double m_gap (10.0);	//Pas entre deux masses (mg)
 
 
 	//Initialisations de variables
@@ -347,9 +347,9 @@ int main()
 
 	/*** Entree utilisateur ***/
 	std::cout<<"Volume becher (mL): ";
-	{std::cin>>_temp;	vi = _temp/1000;}
+	std::cin>>_temp;	vi = _temp/1000;
 	std::cout<<"Volume burette (mL): ";
-	{std::cin>>_temp;	v_burette = _temp/1000;}
+	std::cin>>_temp;	v_burette = _temp/1000;
 	std::cout<<"Concentration de l'espece titrante (mol/L): ";
 	std::cin>> c_titrant;
 	std::cout<<"Ecart de pH maximal: ";
