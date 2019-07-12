@@ -36,10 +36,10 @@ autres especes :
 /*** Functions designed to return concentrations of species in solution ***/
 double getAH3(double const& h, double const& c1, std::vector<double> const& Ka){
 	//Get AH3 concentration
-	return c1/(1+Ka[1]/h*(1+Ka[2]/h*(1+Ka[3])));
+	return c1/(1+Ka[1]/h*(1+Ka[2]/h*(1+Ka[3]/h)));
 }
 double getAH2(double const& h, double const& c1, std::vector<double> const& Ka) {
-	return c1/(1+h/Ka[1]+Ka[2]/h*(1+Ka[3]));
+	return c1/(1+h/Ka[1]+Ka[2]/h*(1+Ka[3]/h));
 }
 double getAH(double const& h, double const& c1, std::vector<double> const& Ka) {
 	return c1/(1+h/Ka[2]*(h/Ka[1]+1)+Ka[3]/h);
@@ -129,8 +129,11 @@ double polynomeB(double const& h, double const& c0, double const& c1, double con
 	*
 	*/
 
-	return Ka[0]/h + getAH2(h, c1, Ka) + 2*getAH(h, c1, Ka) + 3*getA(h, c1, Ka) - getCO2(h, c2, c3, Ka, pCO2air)[0] - getCO2(h, c2, c3, Ka, pCO2air)[1] + getCO3(h, c2, c3, Ka, pCO2air) - c2
-		- getPhCOOH(h, c4, Ka) + getParac(h, c5, Ka) - h - c0;
+	return Ka[0]/h + c1 - getAH3(h, c1, Ka) + getAH2(h, c1, Ka) + 2*getA(h, c1, Ka) - getCO2(h, c2, c3, Ka, pCO2air)[0] - getCO2(h, c2, c3, Ka, pCO2air)[1] + getCO3(h, c2, c3, Ka, pCO2air)
+		+ getParac(h, c5, Ka) - getPhCOOH(h, c4, Ka) - h -c2 - c0;
+
+	/*return Ka[0]/h + getAH2(h, c1, Ka) + 2*getAH(h, c1, Ka) + 3*getA(h, c1, Ka) - getCO2(h, c2, c3, Ka, pCO2air)[0] - getCO2(h, c2, c3, Ka, pCO2air)[1] + getCO3(h, c2, c3, Ka, pCO2air) - c2
+		- getPhCOOH(h, c4, Ka) + getParac(h, c5, Ka) - h - c0;*/
 	//return Ka[0]/h  +  c1/(1+h/Ka[1]+Ka[2]/h*(1+Ka[3]/h))*(1+Ka[2]/h*(2+3*Ka[3]/h))  +  (c2+c3)/(1+h/Ka[5]*(1+h/Ka[4]))*(1-h*h/(Ka[4]*Ka[5]))  -  c2  +  c5/(1+h/Ka[7])  -  c4/(1+Ka[6]/h)  -  c0  -  h;
 }
 
@@ -215,8 +218,8 @@ std::vector<double> getConc(double const& h, double const& c1, double const& c2,
 	*/
 
 	std::vector<double> conc;
-	conc.push_back(c1/(1+Ka[1]/h*(1+Ka[2]/h*(1+Ka[3]))));	//AH3
-	conc.push_back(c1/(1+h/Ka[1]+Ka[2]/h*(1+Ka[3])));	//AH2 -
+	conc.push_back(c1/(1+Ka[1]/h*(1+Ka[2]/h*(1+Ka[3]/h))));	//AH3
+	conc.push_back(c1/(1+h/Ka[1]+Ka[2]/h*(1+Ka[3]/h)));	//AH2 -
 	conc.push_back(c1/(1+h/Ka[2]*(h/Ka[1]+1)+Ka[3]/h));	//AH 2-
 	conc.push_back(c1/(1+h/Ka[3]*(h/Ka[2]*(h/Ka[1]+1)+1)));	//A 3-
 
@@ -253,7 +256,8 @@ void titrage(double const& c_titrant, double const& v_burette, double const& c1,
 
 
 
-	std::ofstream myFile("testpH_"+std::to_string(nbCurve)+".csv");
+	/*std::ofstream myFile("testpH_"+std::to_string(nbCurve)+".csv");*/
+	std::ofstream myFile("testpH.csv");
 
 	myFile<<"Volume ajoute"<<";"<<"pH"
 		<<";"<<"[AH_3]"<<";"<<"[AH_2 -]"<<";"<<"[AH 2-]"<<";"<<"[A 3-]"
@@ -326,10 +330,10 @@ int main()
 
 
 	//Donnees de la simulation
-	double eps (0.3);	//Ecart de pH maximal admissible
+	double eps (0.5);	//Ecart de pH maximal admissible
 	double m_min (0.0);	//Masse minimale (mg)
-	double m_max (1000.0);	//Masse maximale (mg)
-	double m_gap (10.0);	//Pas entre deux masses (mg)
+	double m_max (5000.0);	//Masse maximale (mg)
+	double m_gap (20.0);	//Pas entre deux masses (mg)
 
 
 	//Initialisations de variables
@@ -347,19 +351,19 @@ int main()
 
 	/*** Entree utilisateur ***/
 	std::cout<<"Volume becher (mL): ";
-	std::cin>>_temp;	vi = _temp/1000;
+	//std::cin>>_temp;	vi = _temp/1000;
 	std::cout<<"Volume burette (mL): ";
-	std::cin>>_temp;	v_burette = _temp/1000;
+	//std::cin>>_temp;	v_burette = _temp/1000;
 	std::cout<<"Concentration de l'espece titrante (mol/L): ";
-	std::cin>> c_titrant;
+	//std::cin>> c_titrant;
 	std::cout<<"Ecart de pH maximal: ";
-	std::cin>> eps;
+	//std::cin>> eps;
 	std::cout<<"Masse minimale (mg): ";
-	std::cin>>m_min;
+	//std::cin>>m_min;
 	std::cout<<"Masse maximale (mg): ";
-	std::cin>>m_max;
+	//std::cin>>m_max;
 	std::cout<<"Pas entre deux masses successives (mg): ";
-	std::cin>>m_gap;
+	//std::cin>>m_gap;
 
 
 
